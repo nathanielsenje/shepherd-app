@@ -1,0 +1,534 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_STAFF
+  PASTORAL_STAFF
+  MINISTRY_LEADER
+  READ_ONLY
+}
+
+enum MemberStatus {
+  NEWCOMER
+  VISITOR
+  REGULAR_ATTENDER
+  MEMBER
+  INACTIVE
+}
+
+enum RelationshipType {
+  SPOUSE
+  PARENT
+  CHILD
+  SIBLING
+  GUARDIAN
+  OTHER
+}
+
+enum CustodyIndicator {
+  PRIMARY
+  SECONDARY
+  EMERGENCY
+}
+
+enum MilestoneType {
+  FIRST_VISIT
+  GROWTH_TRACK
+  COVENANT_PARTNER
+  SMALL_GROUP
+  SERVING_TEAM
+  REGULAR_GIVING
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  NOT_APPLICABLE
+  DECLINED
+}
+
+enum AgeCategory {
+  NURSERY
+  PRESCHOOL
+  PRIMARY
+  PRETEEN
+  YOUTH
+}
+
+enum GroupType {
+  GEOGRAPHIC
+  AFFINITY
+  LIFE_STAGE
+  OTHER
+}
+
+enum GroupRole {
+  MEMBER
+  LEADER
+  CO_LEADER
+  HOST
+}
+
+enum MinistryCategory {
+  YOUNG_ADULTS
+  MENS
+  WOMENS
+  SENIORS
+  MARRIAGE
+  SINGLE_PARENTS
+  RECOVERY
+  CUSTOM
+}
+
+enum ParticipantRole {
+  PARTICIPANT
+  LEADER
+  COORDINATOR
+}
+
+enum BackgroundCheckStatus {
+  PENDING
+  CLEARED
+  EXPIRED
+  NOT_REQUIRED
+}
+
+enum Rotation {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  CUSTOM
+}
+
+enum NoteType {
+  ADMINISTRATIVE
+  PASTORAL
+  FOLLOWUP
+}
+
+enum PrivacyLevel {
+  ADMIN_VISIBLE
+  PASTORAL_ONLY
+  RESTRICTED
+  PRIVATE
+  COORDINATOR_VISIBLE
+}
+
+enum PartnershipStatus {
+  NOT_APPLICABLE
+  CONSIDERING
+  ACTIVE
+  DECLINED
+  INACTIVE
+}
+
+enum MentorshipProgramType {
+  NEW_BELIEVER
+  LEADERSHIP
+  MINISTRY_SPECIFIC
+  MARRIAGE
+  LIFE_TRANSITION
+}
+
+enum MentorshipStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  DISCONTINUED
+}
+
+enum ConsentType {
+  DATA_STORAGE
+  COMMUNICATION
+  PHOTO
+  DIRECTORY
+}
+
+// Models
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  firstName       String    @map("first_name")
+  lastName        String    @map("last_name")
+  role            UserRole
+  mfaEnabled      Boolean   @default(false) @map("mfa_enabled")
+  mfaSecret       String?   @map("mfa_secret")
+  lastLogin       DateTime? @map("last_login")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  notes           MemberNote[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Household {
+  id                       String   @id @default(uuid())
+  name                     String
+  primaryAddress           String?  @map("primary_address")
+  city                     String?
+  state                    String?
+  zipCode                  String?  @map("zip_code")
+  householdPhone           String?  @map("household_phone")
+  communicationPreferences Json?    @map("communication_preferences")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  members                  Member[]
+
+  @@map("households")
+}
+
+model Member {
+  id                    String        @id @default(uuid())
+  firstName             String        @map("first_name")
+  lastName              String        @map("last_name")
+  preferredName         String?       @map("preferred_name")
+  email                 String?       @unique
+  phone                 String?
+  dateOfBirth           String?       @map("date_of_birth")
+  gender                String?
+  status                MemberStatus  @default(NEWCOMER)
+  householdId           String?       @map("household_id")
+  firstVisitDate        DateTime?     @map("first_visit_date")
+  isChild               Boolean       @default(false) @map("is_child")
+  privacyFlags          Json?         @map("privacy_flags")
+  consentDataStorage    Boolean       @default(false) @map("consent_data_storage")
+  consentCommunication  Boolean       @default(false) @map("consent_communication")
+  consentDate           DateTime?     @map("consent_date")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+  deletedAt             DateTime?     @map("deleted_at")
+
+  household             Household?    @relation(fields: [householdId], references: [id])
+
+  relationships1        FamilyRelationship[] @relation("Member1")
+  relationships2        FamilyRelationship[] @relation("Member2")
+  milestones            MemberMilestone[]
+  notes                 MemberNote[]
+  childSafety           ChildrenSafetyData?
+  authorizedPickups     AuthorizedPickupPerson[]
+  groupMemberships      GroupMember[]
+  teamMemberships       TeamMember[]
+  ministryParticipation MinistryParticipant[]
+  covenantPartnership   CovenantPartnership?
+  mentorships           MentorshipRelationship[] @relation("Mentor")
+  mentees               MentorshipRelationship[] @relation("Mentee")
+  skills                MemberSkill[]
+  consents              DataConsent[]
+  ledGroups             ConnectGroup[]
+  ledTeams              ServingTeam[]
+  ledMinistries         MinistryProgram[]
+
+  @@map("members")
+}
+
+model FamilyRelationship {
+  id               String             @id @default(uuid())
+  member1Id        String             @map("member_id_1")
+  member2Id        String             @map("member_id_2")
+  relationshipType RelationshipType   @map("relationship_type")
+  custodyIndicator CustodyIndicator?  @map("custody_indicator")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  member1          Member             @relation("Member1", fields: [member1Id], references: [id])
+  member2          Member             @relation("Member2", fields: [member2Id], references: [id])
+
+  @@map("family_relationships")
+}
+
+model MemberMilestone {
+  id             String          @id @default(uuid())
+  memberId       String          @map("member_id")
+  milestoneType  MilestoneType   @map("milestone_type")
+  achievedDate   DateTime?       @map("achieved_date")
+  status         MilestoneStatus @default(NOT_STARTED)
+  notes          String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  member         Member          @relation(fields: [memberId], references: [id])
+
+  @@map("member_milestones")
+}
+
+model ChildrenSafetyData {
+  id                       String       @id @default(uuid())
+  childMemberId            String       @unique @map("child_member_id")
+  medicalAlerts            String?      @map("medical_alerts")
+  allergies                String?
+  specialNeeds             String?      @map("special_needs")
+  emergencyContactInfo     Json?        @map("emergency_contact_info")
+  ageCategory              AgeCategory  @map("age_category")
+  requiresTwoPersonAccess  Boolean      @default(true) @map("requires_two_person_access")
+  createdAt                DateTime     @default(now()) @map("created_at")
+  updatedAt                DateTime     @updatedAt @map("updated_at")
+
+  child                    Member       @relation(fields: [childMemberId], references: [id])
+
+  @@map("children_safety_data")
+}
+
+model AuthorizedPickupPerson {
+  id                  String    @id @default(uuid())
+  childMemberId       String    @map("child_member_id")
+  authorizedPersonName String   @map("authorized_person_name")
+  relationship        String
+  photoIdVerified     Boolean   @default(false) @map("photo_id_verified")
+  photoIdExpiration   DateTime? @map("photo_id_expiration")
+  phoneNumber         String?   @map("phone_number")
+  notes               String?
+  isActive            Boolean   @default(true) @map("is_active")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  child               Member    @relation(fields: [childMemberId], references: [id])
+
+  @@map("authorized_pickup_persons")
+}
+
+model ConnectGroup {
+  id               String      @id @default(uuid())
+  name             String
+  description      String?
+  groupType        GroupType   @map("group_type")
+  meetingSchedule  String?     @map("meeting_schedule")
+  meetingLocation  String?     @map("meeting_location")
+  capacity         Int?
+  isActive         Boolean     @default(true) @map("is_active")
+  leaderId         String?     @map("leader_id")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  leader           Member?     @relation(fields: [leaderId], references: [id])
+  members          GroupMember[]
+
+  @@map("connect_groups")
+}
+
+model GroupMember {
+  id                String     @id @default(uuid())
+  groupId           String     @map("group_id")
+  memberId          String     @map("member_id")
+  role              GroupRole  @default(MEMBER)
+  joinDate          DateTime   @default(now()) @map("join_date")
+  isActive          Boolean    @default(true) @map("is_active")
+  attendanceTracking Json?     @map("attendance_tracking")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  group             ConnectGroup @relation(fields: [groupId], references: [id])
+  member            Member       @relation(fields: [memberId], references: [id])
+
+  @@map("group_members")
+}
+
+model ServingTeam {
+  id                      String        @id @default(uuid())
+  name                    String
+  ministryArea            String        @map("ministry_area")
+  description             String?
+  requirements            String?
+  leaderId                String?       @map("leader_id")
+  schedule                String?
+  timeCommitment          String?       @map("time_commitment")
+  requiresBackgroundCheck Boolean       @default(false) @map("requires_background_check")
+  skillsNeeded            Json?         @map("skills_needed")
+  isActive                Boolean       @default(true) @map("is_active")
+  createdAt               DateTime      @default(now()) @map("created_at")
+  updatedAt               DateTime      @updatedAt @map("updated_at")
+
+  leader                  Member?       @relation(fields: [leaderId], references: [id])
+  members                 TeamMember[]
+
+  @@map("serving_teams")
+}
+
+model TeamMember {
+  id                     String                 @id @default(uuid())
+  teamId                 String                 @map("team_id")
+  memberId               String                 @map("member_id")
+  rolePosition           String?                @map("role_position")
+  joinDate               DateTime               @default(now()) @map("join_date")
+  onboardingCompleted    Boolean                @default(false) @map("onboarding_completed")
+  rotation               Rotation?
+  trainingStatus         Json?                  @map("training_status")
+  backgroundCheckStatus  BackgroundCheckStatus  @default(NOT_REQUIRED) @map("background_check_status")
+  backgroundCheckDate    DateTime?              @map("background_check_date")
+  isActive               Boolean                @default(true) @map("is_active")
+  serviceHours           Int?                   @map("service_hours")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+
+  team                   ServingTeam            @relation(fields: [teamId], references: [id])
+  member                 Member                 @relation(fields: [memberId], references: [id])
+
+  @@map("team_members")
+}
+
+model MinistryProgram {
+  id           String            @id @default(uuid())
+  name         String
+  category     MinistryCategory
+  description  String?
+  ageRangeMin  Int?              @map("age_range_min")
+  ageRangeMax  Int?              @map("age_range_max")
+  leaderId     String?           @map("leader_id")
+  isActive     Boolean           @default(true) @map("is_active")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  leader       Member?           @relation(fields: [leaderId], references: [id])
+  participants MinistryParticipant[]
+
+  @@map("ministry_programs")
+}
+
+model MinistryParticipant {
+  id         String          @id @default(uuid())
+  ministryId String          @map("ministry_id")
+  memberId   String          @map("member_id")
+  joinDate   DateTime        @default(now()) @map("join_date")
+  role       ParticipantRole @default(PARTICIPANT)
+  isActive   Boolean         @default(true) @map("is_active")
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  ministry   MinistryProgram @relation(fields: [ministryId], references: [id])
+  member     Member          @relation(fields: [memberId], references: [id])
+
+  @@map("ministry_participants")
+}
+
+model CovenantPartnership {
+  id               String             @id @default(uuid())
+  memberId         String             @unique @map("member_id")
+  status           PartnershipStatus  @default(NOT_APPLICABLE)
+  signatureDate    DateTime?          @map("signature_date")
+  witnessName      String?            @map("witness_name")
+  commitmentAreas  Json?              @map("commitment_areas")
+  renewalDate      DateTime?          @map("renewal_date")
+  notes            String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  member           Member             @relation(fields: [memberId], references: [id])
+
+  @@map("covenant_partnerships")
+}
+
+model MentorshipProgram {
+  id            String                  @id @default(uuid())
+  name          String
+  programType   MentorshipProgramType   @map("program_type")
+  description   String?
+  coordinatorId String?                 @map("coordinator_id")
+  isActive      Boolean                 @default(true) @map("is_active")
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+
+  relationships MentorshipRelationship[]
+
+  @@map("mentorship_programs")
+}
+
+model MentorshipRelationship {
+  id                String             @id @default(uuid())
+  programId         String             @map("program_id")
+  mentorId          String             @map("mentor_id")
+  menteeId          String             @map("mentee_id")
+  startDate         DateTime           @default(now()) @map("start_date")
+  expectedEndDate   DateTime?          @map("expected_end_date")
+  status            MentorshipStatus   @default(ACTIVE)
+  checkInMilestones Json?              @map("check_in_milestones")
+  privacyLevel      PrivacyLevel       @default(COORDINATOR_VISIBLE) @map("privacy_level")
+  notes             String?
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  program           MentorshipProgram  @relation(fields: [programId], references: [id])
+  mentor            Member             @relation("Mentor", fields: [mentorId], references: [id])
+  mentee            Member             @relation("Mentee", fields: [menteeId], references: [id])
+
+  @@map("mentorship_relationships")
+}
+
+model MemberNote {
+  id           String        @id @default(uuid())
+  memberId     String        @map("member_id")
+  authorId     String        @map("author_id")
+  noteText     String        @map("note_text")
+  noteType     NoteType      @map("note_type")
+  privacyLevel PrivacyLevel  @default(ADMIN_VISIBLE) @map("privacy_level")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  member       Member        @relation(fields: [memberId], references: [id])
+  author       User          @relation(fields: [authorId], references: [id])
+
+  @@map("member_notes")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  timestamp    DateTime @default(now())
+  details      Json?
+
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model MemberSkill {
+  id               String   @id @default(uuid())
+  memberId         String   @map("member_id")
+  skillName        String   @map("skill_name")
+  proficiencyLevel String   @map("proficiency_level")
+  availableToServe Boolean  @default(true) @map("available_to_serve")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  member           Member   @relation(fields: [memberId], references: [id])
+
+  @@map("member_skills")
+}
+
+model DataConsent {
+  id           String      @id @default(uuid())
+  memberId     String      @map("member_id")
+  consentType  ConsentType @map("consent_type")
+  granted      Boolean     @default(false)
+  grantedDate  DateTime?   @map("granted_date")
+  revokedDate  DateTime?   @map("revoked_date")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  member       Member      @relation(fields: [memberId], references: [id])
+
+  @@map("data_consents")
+}
