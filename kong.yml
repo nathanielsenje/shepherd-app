@@ -1,0 +1,46 @@
+_format_version: '2.1'
+_transform: true
+
+services:
+  - name: rest-v1
+    url: http://rest:3000/
+    routes:
+      - name: rest-v1-all
+        strip_path: true
+        paths:
+          - /rest/v1/
+    plugins:
+      - name: cors
+        config:
+          origins:
+            - '*'
+          methods:
+            - GET
+            - HEAD
+            - PUT
+            - PATCH
+            - POST
+            - DELETE
+          headers:
+            - Accept
+            - Accept-Language
+            - Content-Language
+            - Content-Type
+            - Authorization
+            - apikey
+            - X-Client-Info
+          exposed_headers:
+            - X-Total-Count
+            - Link
+          credentials: true
+          max_age: 3600
+
+  - name: meta
+    host: rest
+    port: 3000
+    protocol: http
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /
