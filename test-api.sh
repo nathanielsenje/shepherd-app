@@ -68,18 +68,19 @@ curl -s "$API_BASE/members/unconnected" \
 
 # Test 8: Create a New Member
 echo -e "\n8️⃣  Testing Create Member (POST /api/members)"
+TIMESTAMP=$(date +%s)
 NEW_MEMBER=$(curl -s -X POST "$API_BASE/members" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "Test",
-    "lastName": "User",
-    "email": "test.user@example.com",
-    "phone": "555-9999",
-    "status": "VISITOR",
-    "consentDataStorage": true,
-    "consentCommunication": true
-  }')
+  -d "{
+    \"firstName\": \"Test\",
+    \"lastName\": \"User\",
+    \"email\": \"test.user.$TIMESTAMP@example.com\",
+    \"phone\": \"555-9999\",
+    \"status\": \"VISITOR\",
+    \"consentDataStorage\": true,
+    \"consentCommunication\": true
+  }")
 
 echo "$NEW_MEMBER" | jq
 

@@ -8,6 +8,17 @@ export class MembersService {
   constructor(private prisma: PrismaService) {}
 
   async create(createMemberDto: CreateMemberDto) {
+    // Check if email already exists (if email is provided)
+    if (createMemberDto.email) {
+      const existingMember = await this.prisma.member.findUnique({
+        where: { email: createMemberDto.email },
+      });
+
+      if (existingMember) {
+        throw new BadRequestException('A member with this email already exists');
+      }
+    }
+
     const data: any = {
       ...createMemberDto,
     };
@@ -129,6 +140,17 @@ export class MembersService {
 
     if (!existing) {
       throw new NotFoundException('Member not found');
+    }
+
+    // Check if email is being updated and if it already exists for another member
+    if (updateMemberDto.email && updateMemberDto.email !== existing.email) {
+      const emailExists = await this.prisma.member.findUnique({
+        where: { email: updateMemberDto.email },
+      });
+
+      if (emailExists) {
+        throw new BadRequestException('A member with this email already exists');
+      }
     }
 
     const data: any = { ...updateMemberDto };
