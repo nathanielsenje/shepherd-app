@@ -5,6 +5,7 @@ import { validate } from './config/env.config';
 import { PrismaService } from './config/database.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { MembersModule } from './modules/members/members.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { MembersModule } from './modules/members/members.module';
     AuthModule,
     MembersModule,
   ],
+  controllers: [AppController],
   providers: [PrismaService],
   exports: [PrismaService],
 })

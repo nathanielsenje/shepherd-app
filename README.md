@@ -18,7 +18,7 @@ A secure, privacy-first backend API for church administrative staff to manage me
 ## Tech Stack
 
 - **Backend**: NestJS with TypeScript
-- **Database**: PostgreSQL with Prisma ORM
+- **Database**: PostgreSQL 15 (Docker) with Prisma ORM
 - **Caching**: Redis for session management
 - **Authentication**: JWT with refresh tokens, MFA via TOTP
 - **Security**: Helmet.js, bcrypt, field-level encryption (AES-256-GCM)
@@ -56,11 +56,28 @@ Edit `.env` and update the following critical values:
 
 ### 3. Start Database Services
 
+Start the Supabase Postgres and Redis containers:
+
 ```bash
 npm run docker:up
+# or directly with:
+docker-compose up -d
 ```
 
-This starts PostgreSQL and Redis in Docker containers.
+This starts:
+- **PostgreSQL 15** on port 5432 (with uuid-ossp and pgcrypto extensions)
+- **Redis** on port 6379
+- **Supabase Studio** on port 3010 (database management UI)
+
+Check container status:
+```bash
+docker-compose ps
+```
+
+View logs:
+```bash
+docker-compose logs -f postgres
+```
 
 ### 4. Run Database Migrations
 
@@ -90,6 +107,30 @@ Once running, access the Swagger documentation at:
 ```
 http://localhost:3000/api/docs
 ```
+
+## Database Management
+
+### Supabase Studio
+Access the Supabase Studio UI for database management at:
+```
+http://localhost:3010
+```
+
+Features:
+- Browse and edit tables
+- Run SQL queries
+- View schema and relationships
+- Monitor database performance
+
+### Prisma Studio
+Alternatively, use Prisma Studio:
+```bash
+npm run prisma:studio
+# Opens at http://localhost:5555
+```
+
+### Database Credentials
+See [DATABASE_CREDENTIALS.md](DATABASE_CREDENTIALS.md) for complete connection details and access instructions.
 
 ## Database Schema
 
@@ -147,11 +188,13 @@ npm run build              # Compile TypeScript
 # Database
 npm run prisma:generate    # Generate Prisma client
 npm run prisma:migrate     # Run migrations
-npm run prisma:studio      # Open Prisma Studio UI
+npm run prisma:studio      # Open Prisma Studio UI (port 5555)
 
-# Docker
-npm run docker:up          # Start PostgreSQL & Redis
-npm run docker:down        # Stop containers
+# Docker Services
+npm run docker:up          # Start PostgreSQL, Redis & Supabase Studio
+npm run docker:down        # Stop all containers
+npm run docker:logs        # View logs from all containers
+npm run studio             # View Supabase Studio logs
 
 # Testing
 npm run test               # Run unit tests

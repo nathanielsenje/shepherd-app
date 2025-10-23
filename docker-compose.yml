@@ -1,34 +1,61 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database with extensions
   postgres:
     image: postgres:15-alpine
-    environment:
-      POSTGRES_USER: church_admin
-      POSTGRES_PASSWORD: secure_password
-      POSTGRES_DB: church_system
+    container_name: shepherd_postgres
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: shepherd_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U church_admin"]
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d shepherd_db']
       interval: 10s
       timeout: 5s
       retries: 5
 
+  # Supabase Studio - Database Management UI
+  studio:
+    image: supabase/studio:20240729-ce42139
+    container_name: shepherd_studio
+    restart: unless-stopped
+    ports:
+      - '3010:3000'
+    environment:
+      SUPABASE_URL: http://localhost:8000
+      SUPABASE_PUBLIC_URL: http://localhost:8000
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
+      SUPABASE_SERVICE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shepherd_db
+      PGRST_DB_ANON_ROLE: postgres
+    depends_on:
+      - postgres
+
+  # Redis for session management and caching
   redis:
     image: redis:7-alpine
+    container_name: shepherd_redis
+    restart: unless-stopped
     ports:
-      - "6379:6379"
+      - '6379:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
 
 volumes:
   postgres_data:
+    driver: local
   redis_data:
+    driver: local
