@@ -349,7 +349,12 @@ export class AuthService {
       expiresIn: '7d',
     });
 
-    // Store refresh token in database
+    // Delete old refresh tokens for this user to prevent duplicates
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+
+    // Store new refresh token in database
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await this.prisma.refreshToken.create({
       data: {
