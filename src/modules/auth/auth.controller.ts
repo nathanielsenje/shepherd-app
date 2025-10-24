@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, Get, Patch } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RefreshTokenDto, ChangePasswordDto } from './dto/login.dto';
+import { LoginDto, RefreshTokenDto, ChangePasswordDto, RegisterDto, VerifyEmailDto, ForgotPasswordDto, ResetPasswordDto } from './dto/login.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 
@@ -58,5 +58,40 @@ export class AuthController {
   @ApiOperation({ summary: 'Get current user info' })
   async getCurrentUser(@CurrentUser() user: CurrentUserPayload) {
     return user;
+  }
+
+  @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  async register(@Body() registerDto: RegisterDto) {
+    return this.authService.register(registerDto);
+  }
+
+  @Post('verify-email')
+  @ApiOperation({ summary: 'Verify email address' })
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto);
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({ summary: 'Request password reset' })
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  @ApiOperation({ summary: 'Reset password with token' })
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout user' })
+  async logout(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: { refreshToken: string },
+  ) {
+    return this.authService.logout(user.userId, body.refreshToken);
   }
 }

@@ -2,6 +2,36 @@
 
 A secure, privacy-first backend API for church administrative staff to manage member lifecycles, track engagement, coordinate ministry involvement, and maintain family relationships.
 
+## 🚀 Quick Start
+
+```bash
+# 1. Start services
+npm run docker:up
+
+# 2. Run migrations (one-time setup)
+npm run prisma:generate
+npm run prisma:migrate
+
+# 3. Seed sample data
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/shepherd_db" npm run prisma:seed
+
+# 4. Start the app
+npm run start:dev
+```
+
+**URLs:**
+- API: http://localhost:3000/api
+- Swagger Docs: http://localhost:3000/api/docs
+- Supabase Studio: http://localhost:3010
+- Database: localhost:5432 (postgres/postgres)
+
+**Login:** admin@church.org / Admin123!
+
+📖 **Documentation:**
+- [API Documentation](API_DOCUMENTATION.md) - Complete API reference
+- [Sample Data](SAMPLE_DATA.md) - Test data guide
+- [Database Credentials](DATABASE_CREDENTIALS.md) - DB access info
+
 ## Features
 
 - **Member Management**: Complete CRUD operations for member records with privacy controls
@@ -228,23 +258,41 @@ shepherd-app/
 └── README.md
 ```
 
-## API Endpoints Overview
+## API Documentation
 
-### Authentication (`/api/auth`)
+### 📚 **Complete API Reference**
+
+For detailed API documentation with examples, see:
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete endpoint reference with examples
+- **[SAMPLE_DATA.md](SAMPLE_DATA.md)** - Test data and usage scenarios
+- **Interactive Swagger Docs**: http://localhost:3000/api/docs
+
+### Quick Endpoint Overview
+
+#### Authentication (`/api/auth`)
 - `POST /login` - User login
 - `POST /refresh` - Refresh access token
+- `GET /me` - Get current user info
 - `POST /mfa/setup` - Setup MFA
 - `POST /mfa/verify` - Verify MFA token
 - `PATCH /password/change` - Change password
 
-### Members (`/api/members`)
-- `GET /` - List members (with filtering)
+#### Members (`/api/members`)
+- `GET /` - List members (with filtering & pagination)
 - `GET /:id` - Get member details
+- `GET /unconnected` - Members not in groups
+- `GET /:id/engagement` - Complete engagement dashboard
 - `POST /` - Create member
 - `PATCH /:id` - Update member
 - `DELETE /:id` - Soft delete member
-- `GET /:id/engagement` - Engagement dashboard
-- `GET /unconnected` - Members not in groups
+
+### Test Credentials
+
+```
+Super Admin:      admin@church.org / Admin123!
+Pastoral Staff:   pastor@church.org / Admin123!
+Admin Staff:      staff@church.org / Admin123!
+```
 
 ## Core Principles
 

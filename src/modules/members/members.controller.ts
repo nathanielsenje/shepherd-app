@@ -15,25 +15,28 @@ import { MembersService } from './members.service';
 import { CreateMemberDto, UpdateMemberDto } from './dto/create-member.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { PendingUserGuard } from '../../common/guards/pending-user.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { AllowPending } from '../../common/decorators/allow-pending.decorator';
 import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 
 @ApiTags('members')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PendingUserGuard)
 @UseInterceptors(AuditLogInterceptor)
 @Controller('members')
 export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   @Post()
-  @Roles('SUPER_ADMIN', 'ADMIN_STAFF', 'PASTORAL_STAFF')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'STAFF')
   @ApiOperation({ summary: 'Create a new member' })
   create(@Body() createMemberDto: CreateMemberDto) {
     return this.membersService.create(createMemberDto);
   }
 
   @Get()
+  @AllowPending()
   @ApiOperation({ summary: 'Get all members' })
   @ApiQuery({ name: 'status', required: false })
   @ApiQuery({ name: 'isChild', required: false, type: Boolean })
@@ -57,32 +60,35 @@ export class MembersController {
   }
 
   @Get('unconnected')
+  @AllowPending()
   @ApiOperation({ summary: 'Get members not in any connect group' })
   getUnconnected() {
     return this.membersService.getUnconnected();
   }
 
   @Get(':id')
+  @AllowPending()
   @ApiOperation({ summary: 'Get member by ID' })
   findOne(@Param('id') id: string) {
     return this.membersService.findOne(id);
   }
 
   @Get(':id/engagement')
+  @AllowPending()
   @ApiOperation({ summary: 'Get member engagement dashboard' })
   getEngagement(@Param('id') id: string) {
     return this.membersService.getEngagement(id);
   }
 
   @Patch(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN_STAFF', 'PASTORAL_STAFF')
+  @Roles('SUPER_ADMIN', 'ADMIN', 'STAFF')
   @ApiOperation({ summary: 'Update member' })
   update(@Param('id') id: string, @Body() updateMemberDto: UpdateMemberDto) {
     return this.membersService.update(id, updateMemberDto);
   }
 
   @Delete(':id')
-  @Roles('SUPER_ADMIN', 'ADMIN_STAFF')
+  @Roles('SUPER_ADMIN', 'ADMIN')
   @ApiOperation({ summary: 'Soft delete member' })
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);

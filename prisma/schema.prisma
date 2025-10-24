@@ -16,10 +16,16 @@ datasource db {
 // Enums
 enum UserRole {
   SUPER_ADMIN
-  ADMIN_STAFF
-  PASTORAL_STAFF
+  ADMIN
+  STAFF
   MINISTRY_LEADER
-  READ_ONLY
+  VOLUNTEER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
 }
 
 enum MemberStatus {
@@ -161,21 +167,32 @@ enum ConsentType {
 
 // Models
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  passwordHash    String    @map("password_hash")
-  firstName       String    @map("first_name")
-  lastName        String    @map("last_name")
-  role            UserRole
-  mfaEnabled      Boolean   @default(false) @map("mfa_enabled")
-  mfaSecret       String?   @map("mfa_secret")
-  lastLogin       DateTime? @map("last_login")
-  isActive        Boolean   @default(true) @map("is_active")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                      String      @id @default(uuid())
+  email                   String      @unique
+  passwordHash            String      @map("password_hash")
+  firstName               String      @map("first_name")
+  lastName                String      @map("last_name")
+  phoneNumber             String?     @map("phone_number")
+  photo                   String?
+  bio                     String?
+  role                    UserRole    @default(VOLUNTEER)
+  status                  UserStatus  @default(PENDING)
+  emailVerified           Boolean     @default(false) @map("email_verified")
+  emailVerificationToken  String?     @unique @map("email_verification_token")
+  emailVerificationExpires DateTime?  @map("email_verification_expires")
+  passwordResetToken      String?     @unique @map("password_reset_token")
+  passwordResetExpires    DateTime?   @map("password_reset_expires")
+  mfaEnabled              Boolean     @default(false) @map("mfa_enabled")
+  mfaSecret               String?     @map("mfa_secret")
+  lastLogin               DateTime?   @map("last_login")
+  isActive                Boolean     @default(true) @map("is_active")
+  createdAt               DateTime    @default(now()) @map("created_at")
+  updatedAt               DateTime    @updatedAt @map("updated_at")
 
-  notes           MemberNote[]
-  auditLogs       AuditLog[]
+  notes                   MemberNote[]
+  auditLogs               AuditLog[]
+  preferences             UserPreferences?
+  refreshTokens           RefreshToken[]
 
   @@map("users")
 }
@@ -531,4 +548,32 @@ model DataConsent {
   member       Member      @relation(fields: [memberId], references: [id])
 
   @@map("data_consents")
+}
+
+model UserPreferences {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  language          String   @default("en")
+  theme             String   @default("light")
+  notificationEmail Boolean  @default(true) @map("notification_email")
+  notificationPush  Boolean  @default(true) @map("notification_push")
+  notificationSms   Boolean  @default(false) @map("notification_sms")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
